@@ -5,13 +5,14 @@ import numpy
 from mss import mss
 from PIL import Image
 import time
+import datetime
 
 bot = telebot.TeleBot('1733207219:AAF3oEXRf1ThvQCnVd2SHXdeqx9eWPwMpkw')
 message_id = 0
 started = False
 profile = 'PC'
 lines = ''
-coords = [0,0,0,0]
+coords = [0,0,0,0,0,0]
 inied = False
 standard=0
 pic_send=False
@@ -25,24 +26,22 @@ def ini():
         file_text = file.read()
         global lines
         lines = file_text.split('\n')
-
-        global standard
-        standard = cv2.imread('your_file.jpeg')
-        grayImage = cv2.cvtColor(standard, cv2.COLOR_BGR2GRAY)
-        (thresh, standard) = cv2.threshold(grayImage, 127, 255, cv2.THRESH_BINARY)
         global inied
         inied = True
 
 def start():
-    global rest
     global pic_send
     if(started):
         picture_main = video_capture()
         picture = crop_picture(picture_main)
         picture = color_picture(picture)
         count = eqcount(picture, standard)
-        # print(count)
-        if(count > 40000):
+        # print(datetime.datetime.today().strftime("%H:%M:%S") +' - ' + str(count))
+        # im = Image.fromarray(picture)
+        # im.save("PCset.jpeg")
+        # show_picture(picture)
+        # show_picture(standard)
+        if(count > coords[5]):
             if(pic_send == False):
                 picture=crop_picture_big(picture_main)
                 picture= cv2.cvtColor(picture,cv2.COLOR_BGR2RGB)
@@ -54,13 +53,12 @@ def start():
             pic_send = False
         if(pic_send == False):
             time.sleep(5)
-            start()
         else:
             time.sleep(25)
             bot.send_message(message_id, '10 seconds left')
-        # im = Image.fromarray(picture)
-        # im.save("your_file.jpeg")
-        # show_picture(picture)
+        start()
+
+
 
 def eqcount(picture,standard):
     count = 0
@@ -86,9 +84,14 @@ def crop_picture(picture):
     picture = picture[coords[0]:coords[1], coords[2]:coords[3]]
     return picture
 
+def crop_picture_info(picture):
+    global coords
+    picture = picture[10:1078, coords[2]:1918]
+    return picture
+
 def crop_picture_big(picture):
     global coords
-    picture = picture[coords[0]-430:coords[1], coords[2]:coords[3]]
+    picture = picture[coords[0]-coords[4]:coords[1], coords[2]:coords[3]]
     return picture
 
 def color_picture(picture):
@@ -97,14 +100,6 @@ def color_picture(picture):
     h_max = numpy.array((0, 9, 128), numpy.uint8)
     picture = cv2.inRange(hsv, h_min, h_max)
     return picture
-
-def color_picture2(picture):
-    hsv = cv2.cvtColor(picture, cv2.COLOR_BGR2HSV)
-    h_min = numpy.array((0, 0, 0), numpy.uint8)
-    h_max = numpy.array((255, 255, 255), numpy.uint8)
-    picture = cv2.inRange(hsv, h_min, h_max)
-    return picture
-
 
 @bot.message_handler(content_types=['text'])
 def get_text_messages(message):
@@ -135,6 +130,15 @@ def get_text_messages(message):
         if message.text == '/stop':
             started = False
             bot.send_message(message.from_user.id, 'Program is stopped')
+        if message.text == '/info':
+            picture = video_capture()
+            picture = crop_picture_info(picture)
+            picture = cv2.cvtColor(picture, cv2.COLOR_BGR2RGB)
+            im = Image.fromarray(picture)
+            im.save("send.jpeg")
+            bot.send_photo(message_id, photo=open('send.jpeg', 'rb'))
+
+
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_worker(call):
@@ -150,7 +154,13 @@ def callback_worker(call):
                 coords[1] = int(coords_text[1])
                 coords[2] = int(coords_text[2])
                 coords[3] = int(coords_text[3])
+                coords[4] = int(coords_text[4])
+                coords[5] = int(coords_text[5])
                 bot.send_message(call.message.chat.id, 'Profile "' + text[0] + '" is chosen')
+                global standard
+                standard = cv2.imread(text[0]+'set.jpeg')
+                grayImage = cv2.cvtColor(standard, cv2.COLOR_BGR2GRAY)
+                (thresh, standard) = cv2.threshold(grayImage, 127, 255, cv2.THRESH_BINARY)
 
-bot.polling(none_stop=True, interval=0)
 print("Bot is now ON")
+bot.polling(none_stop=True, interval=0)
