@@ -56,6 +56,7 @@ def start():
         else:
             time.sleep(25)
             bot.send_message(message_id, '10 seconds left')
+            time.sleep(20)
         start()
 
 
